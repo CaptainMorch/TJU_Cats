@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load bootstrap4 %}
+{% load setting %}
+
+{% block title %}添加活动位置{% endblock title %}
+{% block head %}
+	<script type="text/javascript" src="https://webapi.amap.com/maps?v=1.4.15&key={% setting 'AMAP_KEY' %}"></script> 
+{% endblock head %}
+
+
+{% block body %}
+<div class="container">
+    <span class="h2 d-flex justify-content-center justify-content-md-start">添加活动位置</span>
+    <hr>
+    <form action="" method="post" class="form">
+        {% csrf_token %}
+        {% bootstrap_form form %}
+        <div class="container map-container" id="map-container"></div>
+        <div class="btn-group mr-2" role="group">
+            {% for campus in campuses %}
+            <button type="button" class="btn btn-outline-secondary campus-btn" id="campus-btn-{{campus.id}}">
+                {{campus.name}}
+            </button>
+            {% endfor %}
+        </div>
+        <script>
+            // 将 marker 坐标记录进表单字段的函数
+            function updatePosition(){
+                var pos = marker.getPosition();
+
+                console.log(pos);
+                $("#id_longitude").val(pos.lng);
+                $("#id_latitude").val(pos.lat);
+            }
+
+            // 绘制校区地图
+            var map = new AMap.Map("map-container", {
+                    zooms: [{{cat.campus.zoom_level}}, 18]
+                    });
+
+            // 放置坐标点
+            var marker = new AMap.Marker({
+                position: map.getCenter(),
+                draggable: true,
+                cursor: "move",
+                raiseOnDrag: true
+            });
+            marker.setMap(map);
+            marker.on('dragging', updatePosition);
+
+            // 绑定按钮与校区地图
+            var campuses = $.parseJSON('{{campuses_json|safe}}');
+            $.each(campuses, function(i, campus){
+                $("#campus-btn-" + campus.id).click(function(){
+                    map.setZoom(campus.zoom_level);
+                    map.setCenter([campus.longitude, campus.latitude]);
+
+                    // select campus
+                    $("#id_campus").val(campus.id);
+
+                    // toggle active status
+                    $(".campus-btn").removeClass("active");
+                    $(this).addClass("active");
+
+                    // 同时移动 marker 过去
+                    marker.setPosition([campus.longitude, campus.latitude]);
+                    updatePosition(); 
+                });
+            });
+
+            // 使用第一个校区来初始化
+            $("#campus-btn-1").click();
+            
+        </script>
+        {% buttons %}
+        <div class="d-flex justify-content-center justify-content-md-start">
+            <button type="submit" class="btn btn-outline-dark">保存</button>
+        </div>
+        {% endbuttons %}
+    </form>
+</div>
+
+{% endblock body %}

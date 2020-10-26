@@ -1,0 +1,9 @@
+__pycache__/
+migrations/
+venv/
+
+# Secrets
+cats/secrets.py
+
+# vim stuff
+*.sw*

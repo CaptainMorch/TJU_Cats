@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+{% load thumbnail %}
+{% load static %}
+{% load bootstrap4 %}
+{% load setting %}
+
+{% block title %}详情{% endblock title %}
+{% block head %}
+	<script type="text/javascript" src="https://webapi.amap.com/maps?v=1.4.15&key={% setting 'AMAP_KEY' %}"></script> 
+{% endblock head %}
+
+{% block body %}
+<div class="card bg-light mb-5 mx-auto main-card">
+
+    {% if cat.cover_photo %}
+    <img src="{{cat.cover_photo.image|thumbnail_url:'main-card-image'}}" class="card-img-top">
+    {% endif %}
+
+    <div class="card-body">
+        <h1 class="card-title my-3">{{cat.name}}</h1>
+
+        <div class="mb-3 h5">
+            <span class="badge badge-{% if cat.get_status_display == '在校流浪'%}secondary{% elif cat.get_status_display == '已领养' %}success{% elif cat.get_status_display == '离世' %}dark{% elif cat.get_status_display == '住院' %}warning{% else %}{% comment %}剩下'失踪'及'状态未知'{% endcomment %}danger{% endif %}">
+                {{cat.get_status_display}}
+            </span>
+
+            {% if cat.gender is not None %}
+            <span class="badge badge-primary">{{cat.get_gender_display}}孩子</span>
+            {% endif %}
+
+            <span class="badge badge-info">{{cat.campus}}</span>
+
+            {% if cat.long_hair is not None %}
+            <span class="badge badge-primary">{{cat.get_long_hair_display}}</span>
+            {% endif %}
+
+            {% if cat.neutered %}
+            <span class="badge badge-success">已绝育</span>
+            {% elif cat.neutered is not None %}
+            <span class="badge badge-warning">未绝育</span>
+            {% endif %}
+
+            <span class="badge badge-info">{{cat.get_cat_type_display}}</span>
+        </div>
+        <p class="card-text">{{cat.description|default:"喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵"}}</p>
+    </div>
+    <ul class="list-group list-group-flush">
+        <li class="list-group-item">
+            <span class="mr-4">年龄:</span>
+            <span>{{cat.age}}</span>
+        </li>
+        <li class="list-group-item">
+            <span class="mr-4">来由:</span>
+            <span>{{cat.get_source_display}}</span>
+        </li>
+        {% if cat.mom %}
+        <li class="list-group-item">
+            <span class="mr-4">猫妈:</span>
+            <a href="{{cat.mom.get_absolute_url}}" style="color:black">{{cat.mom}}</a>
+        </li>
+        {% endif %}
+        {% if cat.parent %}
+        <li class="list-group-item">
+            <span class="mr-4">应急联系人:</span>
+            <span>{{cat.parent}}</span>
+        </li>
+        {% endif %}
+        <li class="list-group-item">
+            <span class="mr-4">最后更新:</span>
+            <span>{{cat.last_update}}</span>
+        </li>
+        <li class="list-group-item">
+            <span class="mr-4">档案创建:</span>
+            <span>{{cat.documented_date}}</span>
+        </li>
+        
+    </ul>
+    
+    {% if cat.locations.all.exists %}
+    <div class="card-body">
+        <div class="container map-container" id="container"></div>
+        <script>
+            // 绘制校区地图
+            var map = new AMap.Map('container', {
+                    zoom: {{cat.campus.zoom_level}},
+                    zooms: [{{cat.campus.zoom_level}}, 18]
+                    // center: [{{cat.campus.longitude}}, {{cat.campus.latitude}}],
+                });
+
+            // 绘制活动点
+            var markerList = [
+                {% for location in cat.locations.all %}
+                new AMap.Marker({
+                    position: new AMap.LngLat({{location.longitude}}, {{location.latitude}}),
+                    title: '{{location.name}}'
+                }) {% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ];
+            map.add(markerList);
+
+            // 调整缩放级别
+            map.setFitView();
+        </script>
+    </div>
+    {% endif %}
+
+    <div class="card-footer text-muted">
+        <a href="{% url 'cat:update' cat.pk %}">编辑猫咪基本信息</a>
+    </div>
+</div>
+
+<div class="card text-center bg-light mb-5 mx-auto main-card">
+    <div class="card-header h2">相册</div>
+    <div class="card-body">
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3">
+            {% for photo in cat.photos.all %}
+            <div class="col mb-3"><img src="{{photo.image|thumbnail_url:'photo-thumbnail'}}"></div>
+            {% endfor %}
+            <div class="col mb-3">
+                <a class="btn btn-outline-dark px-0" href="{% url 'file:upload_photo' %}" role="button">
+                    <img src="{% static 'image/add.svg' %}" height=200px width=200px>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card text-center bg-light mb-5 mx-auto main-card">
+    <div class="card-header h2">操作</div>
+    <div class="card-body">
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3">
+            {% for action in actions %}
+            {% with forloop.counter as id %}
+            <div class="col mb-3 w-75">
+                <button class="btn btn-outline-dark btn-modal" type="button" data-toggle="modal" data-target="#actionModal{{id}}">
+                    <image src="{% static action.icon_url %}" height=60 width=60>
+                    <p>{{action.name}}</p>
+                </button>
+            </div>
+            {% endwith %}
+            {% empty %}
+            <div class="col mb-3 w-auto border" style="cursor:pointer">
+                <image src="{% static 'cat/flower-thin.svg' %}" height=200 width=200 onClick="this.src='{% static 'cat/flower.svg' %}'">
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="card bg-light mb-5 mx-auto main-card">
+    <div class="card-header h2 text-center">
+        猫咪状态记录
+    </div>
+    <div class="container">
+        <div class="row">
+            <div class="col-2">键</div>
+            <div class="col-3">日期</div>
+            <div class="col-3">记录人</div>
+            <div class="col-4">备注</div>
+        </div>
+        {% for entry in cat.entries.all %}
+        <div class="row">
+            <div class="col-2">{{entry.key}}</div>
+            <div class="col-3">{{entry.date}}</div>
+            <div class="col-3">{{entry.user}}</div>
+            <div class="col-4">{{entry.description}}</div>
+        </div>
+        {% endfor %}
+    </ul>
+</div>
+
+{% for action in actions %}
+{% with forloop.counter as id %}
+<div class="modal fade" id="actionModal{{id}}" tabindex="-1" role="dialog" aria-labelledby="actionModalLabel{{id}}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="actionModalLabel{{id}}">{{action.name}}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>{{action.message|safe}}</p>
+                <form id="actionForm{{id}}" action="{{action.post_to}}">
+                    {% csrf_token %}
+                    {% bootstrap_form action.form %}
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-outline-dark btn-submit" data-form-id="actionForm{{id}}">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endwith %}
+{% endfor %}
+<script>
+    $(".btn-submit").click(function(){
+        var $button = $(this);
+        var $form = $("#" + $button.attr("data-form-id"));
+        console.log("Processing form: " + $form.attr("id"));
+        $.post(
+            $form.attr("action"),
+            $form.serialize(),
+            function(data, code){
+                //console.log("AJAX data received. Code " + code + "\n" + data);
+
+                var message = "";
+                var type = "danger";
+                if(code != 'success'){
+                    message = "服务器无法处理该请求：" + code;
+                }else if(data.success){
+                    message = "发送成功！2 秒后跳转...";
+                    type = "success";
+                    $button.attr("disabled", true);
+                    setTimeout(function(){window.location = data.redirect_to;}, 1500);
+                }else{
+                    message = "提交的数据不合规：" + data.message;
+                }
+
+                $form.after($('<div class="alert alert-' + type + ' alert-dismissible fade show" role="alert">'+
+                                message + 
+                                '<button type="button" class="close" data-dismiss="alert" aria-label="Close">'+
+                                    '<span aria-hidden="true">&times;</span>'+
+                                "</button>"+
+                            "</div>")
+                            );
+                });
+    });
+</script>
+{% endblock body %}

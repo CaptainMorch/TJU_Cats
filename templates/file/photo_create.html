@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% load bootstrap4 %}
+
+{% block title %}上传相片{% endblock title %}
+
+{% block body %}
+<div class="container">
+    <span class="h2 d-flex justify-content-center justify-content-md-start">上传相片</span>
+    <hr>
+    <form enctype="multipart/form-data" action="" method="post" class="form">
+        {% csrf_token %}
+        {% bootstrap_form form %}
+        {% buttons %}
+        <div class="d-flex justify-content-center justify-content-md-start">
+            <button type="submit" class="btn btn-outline-dark">上传</button>
+        </div>
+        {% endbuttons %}
+    </form>
+</div>
+{% endblock body %}
